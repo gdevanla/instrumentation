@@ -84,6 +84,7 @@ class JsonArray<T1 extends AbstractJsonObject> extends AbstractJsonObject {
 		for(T1 v:values){
 			sb.append(v.toJsonString()).append(",");
 		}
+		if (sb.length()==1) return "[]";
 		sb.replace(sb.length()-1, sb.length(), "]");
 		return sb.toString();	
 	}

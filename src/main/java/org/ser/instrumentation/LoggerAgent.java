@@ -29,6 +29,8 @@ public class LoggerAgent implements ClassFileTransformer {
 	
 	//String loggerDef = "private static java.util.logging.Logger _log;";
 	
+	//public static String regEx = "*";
+	
 	public static void premain(String agentArgument,
 			Instrumentation instrumentation) {
 
@@ -62,9 +64,10 @@ public class LoggerAgent implements ClassFileTransformer {
 
 	public byte[] transform(ClassLoader loader, String className,
 			Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
-			byte[] classfileBuffer) throws IllegalClassFormatException {
-
-		if (className.equals("org/ser/instrumentation/SampleApp/HelloWorld")){
+			byte[] classfileBuffer) throws IllegalClassFormatException {		
+		
+		if (className.contains("edu/ncsu/csc/itrust/")){
+			System.out.println(className);
 			return doClass(className, classBeingRedefined, classfileBuffer);
 		}
 
@@ -75,10 +78,15 @@ public class LoggerAgent implements ClassFileTransformer {
 	
 	private byte[] doClass(String name, Class<?> clazz, byte[] b) {
 
-	    ClassPool pool = ClassPool.getDefault();
+		
 	    CtClass cl = null;
 	    try {
+	    	System.out.println("outside here===" + name);
+		    ClassPool pool = ClassPool.getDefault();
+		    System.out.println("jjjjddddd="+name);
+	    
 	      cl = pool.makeClass(new java.io.ByteArrayInputStream(b));
+	      System.out.println("jjjj="+name+cl.isInterface());
 	      if (cl.isInterface() == false) {
 
 	        //CtField field = CtField.make("private static org.slf4j.Logger logger;", cl);
@@ -87,10 +95,12 @@ public class LoggerAgent implements ClassFileTransformer {
 	        //cl.addField(field, getLogger);
 
 	        CtBehavior[] methods = cl.getDeclaredBehaviors();
+	        System.out.println("outside here");
 	        for (int i = 0; i < methods.length; i++) {
-	          if (methods[i].isEmpty() == false && (methods[i]).getName().equals("sayHelloWorld")) {
-	        	  System.out.println(methods[i].getName());
-	            doMethod(methods[i]);
+	        	 System.out.println("outside here=" + methods[i].getName());
+	          if (methods[i].isEmpty() == false ){// && (methods[i]).getName().equals("sayHelloWorld")) {
+	        	  System.out.println("here=" + methods[i].getName());
+	            doMethod(cl, methods[i]);
 	          }
 	        }
 	        b = cl.toBytecode();
@@ -108,14 +118,16 @@ public class LoggerAgent implements ClassFileTransformer {
 	  }
 	
 	
-	private void doMethod(CtBehavior method)
+	private void doMethod(CtClass cl, CtBehavior method)
 		      throws NotFoundException, CannotCompileException {
 
-		    String signature = JsonGenerator.getMethodInfo(method);
+		    //System.out.println("inside do method for "+ method.getName());
+		    String signature = JsonGenerator.getMethodInfo(cl, method);
 		    //String returnValue = JavassistHelper.returnValue(method);
 		   // signature = signature.replaceAll("\"", "\\\"");
 
 		    String message = "System.out.println(\"" + signature  + "\");"; //".replace(\"X\", \"\"\")"
+		   // System.out.println("Inside " + method + "with parameters= " + message);
 		   // System.out.println("Over here ==>" + message);		    
 		    //System.out.println(message);
 		    method.insertBefore(message);

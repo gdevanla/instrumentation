@@ -2,6 +2,8 @@
 package org.ser.instrumentation;
 
 import javassist.CtBehavior;
+import javassist.CtClass;
+import javassist.NotFoundException;
 import javassist.bytecode.AttributeInfo;
 import javassist.bytecode.CodeAttribute;
 import javassist.bytecode.LocalVariableAttribute;
@@ -9,13 +11,23 @@ import javassist.bytecode.LocalVariableAttribute;
 
 public class JsonGenerator{
 
-	public static String getMethodInfo(CtBehavior method) {
+	public static String getMethodInfo(CtClass cl, CtBehavior method) {
 
 		CodeAttribute codeAttribute = method.getMethodInfo().getCodeAttribute();
 		LocalVariableAttribute locals = null;
 
-
+		if ( codeAttribute == null){
+			System.out.println("Code attribute null for method=" + method.getName());
+		}
+		JsonPair className = new JsonPair("ClassName", new JsonValue(cl.getName()));
 		JsonPair methodName = new JsonPair("MethodName", new JsonValue(method.getName()));
+		JsonPair superClass;
+		try {
+			superClass = new JsonPair("SuperClassName", 
+					new JsonValue(cl.getSuperclass().getName()));
+		} catch (NotFoundException e) {
+			superClass = new JsonPair("SuperClassName", new JsonValue("java.lang.Object"));
+		}
 
 		AttributeInfo attribute;
 		attribute = codeAttribute.getAttribute("LocalVariableTable");
@@ -35,9 +47,15 @@ public class JsonGenerator{
 		methodLevel.value.add(localVariableType);
 		methodLevel.value.add(localVariable);
 		methodLevel.value.add(methodName);
+		methodLevel.value.add(className);
+		methodLevel.value.add(superClass);
+		
 		methodLevel.value.add(new JsonPair("Annotations", allAnnotations));
 
-		return methodLevel.toJsonString();
+		JsonObject loggerLevel = new JsonObject();
+		loggerLevel.value.add(new JsonPair("MethodInstrumentation", methodLevel));
+		
+		return loggerLevel.toJsonString();
 
 	}
 
@@ -63,6 +81,7 @@ public class JsonGenerator{
 	private static JsonArray<JsonObject> getLocalVariableInfo(LocalVariableAttribute locals) {
 
 		JsonArray<JsonObject> variableList = new JsonArray<JsonObject>();
+		if ( locals == null) return variableList;
 		for ( int i=0; i<locals.tableLength(); i++){
 			JsonObject o = new JsonObject();
 			o.value.add(new JsonPair("variableType", new JsonValue(locals.descriptor(i))));
